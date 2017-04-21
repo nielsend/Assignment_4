@@ -1,0 +1,163 @@
+---
+title: "BCB_546x_Assignment_4"
+author: "DanielNielsen"
+date: "April 15, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+<br>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install the necessary packages
+
+**Note**: If the packages do not install (like rtracklayer for me in Ubuntu), run the following command in bash:
+
+```
+run sudo apt-get install -y libcurl-dev libxml2-dev
+
+```
+
+<br>
+
+**Download and load biocLite, so it can be used to install other packages**
+
+```{r}
+source("https://bioconductor.org/biocLite.R")
+library(BiocInstaller)
+```
+
+<br>
+**Install rtracklayer, GenomicFeatures, and the annotation package for the house mouse**
+
+```{r}
+biocLite("rtracklayer")
+biocLite("GenomicFeatures")
+biocLite("TxDb.Mmusculus.UCSC.mm10.ensGene")
+```
+
+<br>
+
+## Load the necessary libraries
+**Loads rtracklayer, BiocInstaller, IRanges, GenomicRanges, and house mouse libraries, so their commands and information can be used.**
+```{r}
+library(IRanges)
+library(GenomicRanges)
+library(rtracklayer)
+library(TxDb.Mmusculus.UCSC.mm10.ensGene)
+```
+<br>
+
+## Data Manipulation
+**From the mouse library, create an SQLite database called txdb**
+```{r}
+txdb <- TxDb.Mmusculus.UCSC.mm10.ensGene
+```
+<br>
+
+**Import Chromosome 1, small nucleotide polymorphism 137 data**
+
+Use rtracklayer because it can be used for importing/exporting into different formats
+```{r}
+dbsnp137 <- import("~/bds-files/chapter-09-working-with-range-data/mm10_snp137_chr1_trunc.bed.gz")
+```
+<br>
+
+**Collapse all overlapping exons in txdb, ignore than strand orientation**
+```{r}
+collapsed_exons <- reduce(exons(txdb), ignore.strand=TRUE)
+```
+<br>
+
+**Create chr1_collapsed_exons, which has the chronomosome 1 exons**
+```{r}
+chr1_collapsed_exons <- collapsed_exons[seqnames(collapsed_exons) == "chr1"]
+```
+<br>
+
+**Inspect chr1_collapsed_exons**
+```{r}
+head(chr1_collapsed_exons)
+```
+
+Object has chr, ranges, and * for strand information
+
+<br>
+
+**Inspect the variant containing object**
+```{r}
+summary(width(dbsnp137))
+dbsnp137
+```
+
+<br>
+
+## Resize dbsnp137
+
+
+**We need to adjust the width of dbsnp137**
+```{r}
+dbsnp137_resized <- dbsnp137
+```
+<br>
+
+**Create an if statement, zw_i will contain logical values. True==width=0**
+```{r}
+zw_i <- width(dbsnp137_resized) == 0
+```
+
+<br>
+
+**Put in a null value when there used to be zero**
+```{r}
+dbsnp137_resized[zw_i] <- resize(dbsnp137_resized[zw_i], width=1)
+```
+<br>
+
+**Pull out variants that overlap exons & view the variants**
+```{r}
+hits <- findOverlaps(dbsnp137_resized, chr1_collapsed_exons, ignore.strand=TRUE)
+hits
+```
+
+
+<br>
+
+
+
+## Calculations & Add the column
+**Determine the number of variants that are exonic**
+```{r}
+length(unique(queryHits(hits)))   #57623
+```
+
+<br>
+**Determine the proportion of variants that are exonic**
+```{r}
+length(unique(queryHits(hits)))/length(dbsnp137_resized)  #0.0213
+```
+<br>
+
+**Create a vector var_counts that has the number of variants per exon**
+```{r}
+var_counts <- countOverlaps(chr1_collapsed_exons, dbsnp137_resized, ignore.strand=TRUE)
+```
+<br>
+
+**Add var_counts to the num_vars column of chr1_collapsed_exons & inspect**
+```{r}
+chr1_collapsed_exons$num_vars<-var_counts
+chr1_collapsed_exons
+```
+<br>
+
+## Write out the file
+```{r}
+write.csv(as.data.frame(chr1_collapsed_exons), file="./chr1_collapsed_exons.csv", row.names=FALSE)
+```
+
+<br>
+```getwd()
+```

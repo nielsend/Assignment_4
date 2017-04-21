@@ -1,0 +1,142 @@
+---
+title: "Assignment_4_EC"
+author: "DanielNielsen"
+date: "April 19, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+<br>
+# Extra credit assignment for BCB 546X
+
+<br>
+
+## Install the necessary packages
+
+**Note**: If the packages do not install (like rtracklayer for me in Ubuntu), run the following command in bash:
+
+run sudo apt-get install -y libcurl-dev libxml2-dev
+
+<br>
+
+**Download and load biocLite, so it can be used to install other packages**
+```{r}
+source("https://bioconductor.org/biocLite.R")
+library(BiocInstaller)
+```
+
+<br>
+**Install rtracklayer, GenomicFeatures, BiostringsGenome, and the annotation package for the house mouse**
+
+```{r}
+biocLite("rtracklayer")
+biocLite("GenomicFeatures")
+biocLite("BSgenome.Mmusculus.UCSC.mm10")
+biocLite("GRanges")
+```
+<br>
+
+## Load libraries
+**Loads rtracklayer, BiocInstaller, IRanges, GenomicRanges, and house mouse libraries, so their commands and information can be used.**
+```{r}
+library(rtracklayer)
+library(GenomicFeatures)
+library(GenomicRanges)
+library(Biostrings)
+library(BSgenome.Mmusculus.UCSC.mm10)
+```
+<br>
+
+## Import Mouse Chromosome 38 info using rtracklayer
+```{r}
+mm_gtf <-import("~/bds-files/chapter-09-working-with-range-data/Mus_musculus.GRCm38.75_chr1.gtf.gz")
+colnames(mcols(mm_gtf)) #read the metadata
+```
+
+### Find the subset of genes:
+```{r}
+# list the number of genes with each type of gene
+table(mm_gtf$gene_biotype)
+
+#get protein coding genes in chr1_pcg
+chr1_pcg <- mm_gtf[mm_gtf$type == "gene" & mm_gtf$gene_biotype == "protein_coding"]
+
+#inspect chr1_pcg, which contains the protein coding genes
+summary(width(chr1_pcg))  #mean 60640
+length(chr1_pcg)   #1240
+
+#Get the upstream flanking region of chr1_pcg_3kb_up
+chr1_pcg_3kb_up <- flank(chr1_pcg, width=3000)
+```
+<br>
+
+### Retrieving Promoter Sequence
+**Explore**
+```{r}
+#give the genome to a variable
+mm_gm <- BSgenome.Mmusculus.UCSC.mm10
+
+#get the organism name
+organism(mm_gm)
+
+#get the genome version
+provider(mm_gm)
+
+#find out the provider
+provider(mm_gm)
+
+#seqinfo() can be used to examine sequence information
+seqinfo(mm_gm)
+
+#BSgenome objects can be searched
+matchPattern("GGCGCGCC", mm_gm$chr1)
+
+```
+
+<br>
+
+### Remap the chrosomes
+
+**BSgenome and GRanges use different formats**
+```{r}
+#
+all(seqlevels(chr1_pcg_3kb_up)) %in% seqlevels(mm_gm)
+
+#
+gr <- GRanges(c("chr1", "chr2"), IRanges(start=c(3, 4), width=10))
+seqlevels(gr)
+
+#
+seqlevels(gr) <- c("1","2")
+seqlevels(gr)
+
+#
+seqlevelsStyle(chr1_pcg_3kb_up)
+
+#
+seqlevelsStyle(mm_gm)
+
+# 
+seqlevelsStyle(chr1_pcg_3kb_up) <- "UCSC"
+
+all(seqlevels(chr1_pcg_3kb_up)) %in% seqlevels(mm_gm)
+
+```
+
+<br>
+
+### Grab sequence regions
+```{r}
+# 
+chr1_3kb_seqs <- getSeq(mm_gm, chr1_pcg_3kb_up)
+chr1_3kb_seqs
+
+```
+
+### Write out the promoter regions to a new file
+```{r}
+writeXStringSet(chr1_3kb_seqs, file="./mm10_chr1_promoters.fasta", format="fasta")
+```
+
