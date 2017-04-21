@@ -2,12 +2,11 @@
 title: "Assignment_4_EC"
 author: "DanielNielsen"
 date: "April 19, 2017"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 <br>
 # Extra credit assignment for BCB 546X
 
@@ -31,10 +30,11 @@ library(BiocInstaller)
 **Install rtracklayer, GenomicFeatures, BiostringsGenome, and the annotation package for the house mouse**
 
 ```{r}
+biocLite("GenomicRanges")
 biocLite("rtracklayer")
 biocLite("GenomicFeatures")
 biocLite("BSgenome.Mmusculus.UCSC.mm10")
-biocLite("GRanges")
+
 ```
 <br>
 
@@ -97,30 +97,30 @@ matchPattern("GGCGCGCC", mm_gm$chr1)
 
 <br>
 
-### Remap the chrosomes
+### Remap the chromosomes
 
-**BSgenome and GRanges use different formats**
+**Needed because BSgenome and GRanges use different formats**
 ```{r}
-#
+# Check to see if sequences are in BSgenome
 all(seqlevels(chr1_pcg_3kb_up)) %in% seqlevels(mm_gm)
+#False because annotation styles
 
-#
+# Create a test GRanges object to demonstrate how to manually change chromosome names and view
 gr <- GRanges(c("chr1", "chr2"), IRanges(start=c(3, 4), width=10))
 seqlevels(gr)
 
-#
+# Change sequence level names in the same order as above
 seqlevels(gr) <- c("1","2")
 seqlevels(gr)
 
-#
+# Determine the sequence styles of the two
 seqlevelsStyle(chr1_pcg_3kb_up)
-
-#
 seqlevelsStyle(mm_gm)
 
-# 
+# Switch ch1_pcg_3kb_up to UCSC style
 seqlevelsStyle(chr1_pcg_3kb_up) <- "UCSC"
 
+# Check to see if all the sequence levels are consistent
 all(seqlevels(chr1_pcg_3kb_up)) %in% seqlevels(mm_gm)
 
 ```
@@ -129,7 +129,7 @@ all(seqlevels(chr1_pcg_3kb_up)) %in% seqlevels(mm_gm)
 
 ### Grab sequence regions
 ```{r}
-# 
+# Grab sequence region for particular regions
 chr1_3kb_seqs <- getSeq(mm_gm, chr1_pcg_3kb_up)
 chr1_3kb_seqs
 
